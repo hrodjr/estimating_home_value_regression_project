@@ -7,8 +7,9 @@ def get_connection(db, user=env.user, host=env.host, password=env.password):
     return f'mysql+pymysql://{user}:{password}@{host}/{db}'
 
 #zillow db
-zillow_sql = "SELECT *\
+zillow_sql = "SELECT parcelid, bathroomcnt, bedroomcnt, fips, garagecarcnt, lotsizesquarefeet, yearbuilt, taxvaluedollarcnt, taxamount, calculatedfinishedsquarefeet, predictions_2017.logerror AS predictions\
                 FROM properties_2017\
+                LEFT JOIN predictions_2017 USING(parcelid)\
                 JOIN propertylandusetype USING(propertylandusetypeid)\
                 WHERE propertylandusetype.propertylandusetypeid LIKE '261';"
 
@@ -108,13 +109,27 @@ def remove_outliers(df, k , col_list):
 #Wrangle zillow dataset
 def prepare_zillow(df):
     ''' cleans and prepares zillow data'''
+#remove duplicates
     df = df.drop_duplicates()
+#rename columns
+#rename columns
+    df = df.rename(columns={"bedroomcnt": "bedrooms", "bathroomcnt": "bathrooms", "calculatedfinishedsquarefeet":"square_feet", "taxvaluedollarcnt":"tax_value", "yearbuilt":"year_built", "taxamount":"tax_amount", "fips":"county_code", "garagecarcnt":"garage", "lotsizesquarefeet":"lot_size"})
+#converts to int
+    convert_dict = {'year_built': object, 'county_code': object, 'parcelid':object, 'lot_size':object}
+#converted lot_size to object then to int. I tried to convert lot_size from float to obj. When I tried it gave me an error that it could not convert (NA or inf) to int.
+    df = df.astype(convert_dict)
 #replaces nulls with bedroomcnt mode
     df['bedroomcnt'] = df.bedroomcnt.fillna(value = 3)
 #replaces nulls with bathroomcnt mode
-    df['bathroomcnt'] = df.bathroomcnt.fillna(value = 2)
+    df['bathroomcnt'] = df.bathroomcnt.fillna(value = 2.5)
+#replaces nulls with garagecarcnt mode
+    df['garagecarcnt'] = df.garagecarcnt.fillna(value = 2)
+#replaces nulls with lotsizesquarefeet mean
+    df['lotsizesquarefeet'] = df.lotsizesquarefeet.fillna(value = df['lotsizesquarefeet'].mean())
 #replaces nulls with calculatedfinishedsquarefeet mean
     df['calculatedfinishedsquarefeet'] = df.calculatedfinishedsquarefeet.fillna(value = df['calculatedfinishedsquarefeet'].mean())
+#replaces nulls with calculatedfinishedsquarefeet mean
+    df['predictions'] = df.predictions.fillna(value = df['predictions'].mean())
 #replaces nulls with taxvaluedollarcnt mode
     df['taxvaluedollarcnt'] = df.taxvaluedollarcnt.fillna(value = 45000)
 #replaces nulls with yearbuilt mode
@@ -126,9 +141,7 @@ def prepare_zillow(df):
 #converts year built and fips 'county_codes' to object as they are categories
     convert_dict = {'yearbuilt': object, 'fips': object}
     df = df.astype(convert_dict)
-#rename columns
-    df = df.rename(columns={"bedroomcnt": "bedrooms", "bathroomcnt": "bathrooms", "calculatedfinishedsquarefeet":"square_feet",
-                  "taxvaluedollarcnt":"tax_value", "yearbuilt":"year", "taxamount":"tax_amount", "fips":"county_codes"})
+
 
 # drop taxamount
     df = df.drop(columns = 'tax_amount')
