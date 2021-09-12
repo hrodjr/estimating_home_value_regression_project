@@ -7,11 +7,12 @@ def get_connection(db, user=env.user, host=env.host, password=env.password):
     return f'mysql+pymysql://{user}:{password}@{host}/{db}'
 
 #zillow db
-zillow_sql = "SELECT parcelid, bathroomcnt, bedroomcnt, fips, garagecarcnt, lotsizesquarefeet, yearbuilt, taxvaluedollarcnt, taxamount, calculatedfinishedsquarefeet, predictions_2017.logerror AS predictions\
+zillow_sql = "SELECT parcelid, bathroomcnt, bedroomcnt, fips, garagecarcnt, lotsizesquarefeet, yearbuilt, taxvaluedollarcnt,\
+              calculatedfinishedsquarefeet, predictions_2017.transactiondate AS transaction_date\
                 FROM properties_2017\
                 LEFT JOIN predictions_2017 USING(parcelid)\
                 JOIN propertylandusetype USING(propertylandusetypeid)\
-                WHERE propertylandusetype.propertylandusetypeid LIKE '261';"
+                WHERE propertylandusetype.propertylandusetypeid LIKE '261' AND predictions_2017.transactiondate BETWEEN '2017-05-01' AND '2017-08-31';"
 
 def get_zillow_data():
     return pd.read_sql(zillow_sql,get_connection('zillow'))
@@ -24,7 +25,7 @@ def get_hist(df):
     plt.figure(figsize=(16, 3))
 
     # List of columns
-    cols = [col for col in df.columns if col not in ['county_codes', 'year']]
+    cols = [col for col in df.columns if col not in ['county_code', 'year_built', 'parcelid', 'transaction_date']]
 
     for i, col in enumerate(cols):
 
@@ -55,7 +56,7 @@ def get_box(df):
     ''' Gets boxplots of acquired continuous variables'''
     
     # List of columns
-    cols = ['bedrooms', 'bathrooms', 'square_feet', 'tax_value']
+    cols = ['bathrooms', 'bedrooms', 'garage', 'lot_size', 'tax_value', 'square_feet']
 
     plt.figure(figsize=(16, 3))
 
@@ -112,51 +113,38 @@ def prepare_zillow(df):
 #remove duplicates
     df = df.drop_duplicates()
 #rename columns
-#rename columns
-    df = df.rename(columns={"bedroomcnt": "bedrooms", "bathroomcnt": "bathrooms", "calculatedfinishedsquarefeet":"square_feet", "taxvaluedollarcnt":"tax_value", "yearbuilt":"year_built", "taxamount":"tax_amount", "fips":"county_code", "garagecarcnt":"garage", "lotsizesquarefeet":"lot_size"})
+    df = df.rename(columns={"bedroomcnt": "bedrooms", "bathroomcnt": "bathrooms", 
+    "calculatedfinishedsquarefeet":"square_feet", "taxvaluedollarcnt":"tax_value", 
+    "yearbuilt":"year_built", "fips":"county_code", 
+    "garagecarcnt":"garage", "lotsizesquarefeet":"lot_size"})
 #converts to int
-    convert_dict = {'year_built': object, 'county_code': object, 'parcelid':object, 'lot_size':object}
-#converted lot_size to object then to int. I tried to convert lot_size from float to obj. When I tried it gave me an error that it could not convert (NA or inf) to int.
+    convert_dict = {'county_code': object, 'parcelid':object, 'lot_size':object}
+#converted lot_size to object then to int. I tried to convert lot_size from float to obj. When I tried it gave 
+#me an error that it could not convert (NA or inf) to int.
     df = df.astype(convert_dict)
 #replaces nulls with bedroomcnt mode
-    df['bedroomcnt'] = df.bedroomcnt.fillna(value = 3)
+    df['bedrooms'] = df.bedrooms.fillna(value = 3)
 #replaces nulls with bathroomcnt mode
-    df['bathroomcnt'] = df.bathroomcnt.fillna(value = 2.5)
+    df['bathrooms'] = df.bathrooms.fillna(value = 2.5)
 #replaces nulls with garagecarcnt mode
-    df['garagecarcnt'] = df.garagecarcnt.fillna(value = 2)
+    df['garage'] = df.garage.fillna(value = 2)
 #replaces nulls with lotsizesquarefeet mean
-    df['lotsizesquarefeet'] = df.lotsizesquarefeet.fillna(value = df['lotsizesquarefeet'].mean())
+    df['lot_size'] = df.lot_size.fillna(value = df['lot_size'].mean())
 #replaces nulls with calculatedfinishedsquarefeet mean
-    df['calculatedfinishedsquarefeet'] = df.calculatedfinishedsquarefeet.fillna(value = df['calculatedfinishedsquarefeet'].mean())
-#replaces nulls with calculatedfinishedsquarefeet mean
-    df['predictions'] = df.predictions.fillna(value = df['predictions'].mean())
+    df['square_feet'] = df.square_feet.fillna(value = df['square_feet'].mean())
 #replaces nulls with taxvaluedollarcnt mode
-    df['taxvaluedollarcnt'] = df.taxvaluedollarcnt.fillna(value = 45000)
+    df['tax_value'] = df.tax_value.fillna(value = df['tax_value'].mean())
 #replaces nulls with yearbuilt mode
-    df['yearbuilt'] = df.yearbuilt.fillna(value = 1960)
- #replaces nulls with taxamount mean   
-    df['taxamount'] = df.taxamount.fillna(value = df['taxamount'].mean())
-#converts data type to int64 from float64
-    df = df.astype('int64')
-#converts year built and fips 'county_codes' to object as they are categories
-    convert_dict = {'yearbuilt': object, 'fips': object}
-    df = df.astype(convert_dict)
-
-
-# drop taxamount
-    df = df.drop(columns = 'tax_amount')
-
+    df['year_built'] = df.year_built.fillna(value = 1960)
+#converts floats to int 
+    convert_dict_int = {'bathrooms': int, 'bedrooms': int, 'garage':int,'tax_value':int,
+                        'square_feet':int, 'lot_size':int, 'year_built': object}
+    df = df.astype(convert_dict_int)
 #removes outliers with k values and column features
-    df = remove_outliers(df, 1.5, ['bedrooms', 'bathrooms', 'tax_value', 'square_feet'])
-
+    df = remove_outliers(df, 1.5, ['bathrooms', 'bedrooms', 'garage', 'lot_size', 'tax_value', 'square_feet'])
 #gets graphs
     get_hist(df)
-    get_box(df)
-##For later
-#train[['year']] = imputer.transform(train[['year']])
-#validate[['year']] = imputer.transform(validate[['year']])
-#test[['year']] = imputer.transform(test[['year']])     
-    
+    get_box(df)   
 
     return df
 
