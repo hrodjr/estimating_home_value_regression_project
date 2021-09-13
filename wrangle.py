@@ -2,13 +2,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import env
+from datetime import date
+from sklearn.model_selection import train_test_split
 
 def get_connection(db, user=env.user, host=env.host, password=env.password):
     return f'mysql+pymysql://{user}:{password}@{host}/{db}'
 
 #zillow db
-zillow_sql = "SELECT parcelid, bathroomcnt, bedroomcnt, fips, garagecarcnt, lotsizesquarefeet, yearbuilt, taxvaluedollarcnt,\
-              calculatedfinishedsquarefeet, predictions_2017.transactiondate AS transaction_date\
+zillow_sql = "SELECT bathroomcnt, bedroomcnt, fips, yearbuilt, taxvaluedollarcnt, taxamount, calculatedfinishedsquarefeet\
                 FROM properties_2017\
                 LEFT JOIN predictions_2017 USING(parcelid)\
                 JOIN propertylandusetype USING(propertylandusetypeid)\
@@ -25,7 +26,7 @@ def get_hist(df):
     plt.figure(figsize=(16, 3))
 
     # List of columns
-    cols = [col for col in df.columns if col not in ['county_code', 'year_built', 'parcelid', 'transaction_date']]
+    cols = [col for col in df.columns if col not in ['county_code']]
 
     for i, col in enumerate(cols):
 
@@ -56,7 +57,7 @@ def get_box(df):
     ''' Gets boxplots of acquired continuous variables'''
     
     # List of columns
-    cols = ['bathrooms', 'bedrooms', 'garage', 'lot_size', 'tax_value', 'square_feet']
+    cols = ['bathrooms', 'bedrooms', 'tax_value', 'tax_rate', 'square_feet', 'age']
 
     plt.figure(figsize=(16, 3))
 
@@ -110,43 +111,52 @@ def remove_outliers(df, k , col_list):
 #Wrangle zillow dataset
 def prepare_zillow(df):
     ''' cleans and prepares zillow data'''
-#remove duplicates
-    df = df.drop_duplicates()
+#age of home and tax rate calculations. Drop respective columns
+    df['age'] = date.today().year - df.yearbuilt
+    df['tax_rate'] = (df['taxamount'] / df['taxvaluedollarcnt'])
+    df = df.drop(columns=['yearbuilt', 'tax_amount'])
 #rename columns
     df = df.rename(columns={"bedroomcnt": "bedrooms", "bathroomcnt": "bathrooms", 
-    "calculatedfinishedsquarefeet":"square_feet", "taxvaluedollarcnt":"tax_value", 
-    "yearbuilt":"year_built", "fips":"county_code", 
-    "garagecarcnt":"garage", "lotsizesquarefeet":"lot_size"})
+    "calculatedfinishedsquarefeet":"square_feet", "taxvaluedollarcnt":"tax_value", "fips":"county_code"})
 #converts to int
-    convert_dict = {'county_code': object, 'parcelid':object, 'lot_size':object}
+    convert_dict = {'county_code': object}
 #converted lot_size to object then to int. I tried to convert lot_size from float to obj. When I tried it gave 
 #me an error that it could not convert (NA or inf) to int.
     df = df.astype(convert_dict)
-#replaces nulls with bedroomcnt mode
-    df['bedrooms'] = df.bedrooms.fillna(value = 3)
-#replaces nulls with bathroomcnt mode
-    df['bathrooms'] = df.bathrooms.fillna(value = 2.5)
-#replaces nulls with garagecarcnt mode
-    df['garage'] = df.garage.fillna(value = 2)
-#replaces nulls with lotsizesquarefeet mean
-    df['lot_size'] = df.lot_size.fillna(value = df['lot_size'].mean())
-#replaces nulls with calculatedfinishedsquarefeet mean
+
+#replaces nulls with square_feet mean
     df['square_feet'] = df.square_feet.fillna(value = df['square_feet'].mean())
-#replaces nulls with taxvaluedollarcnt mode
-    df['tax_value'] = df.tax_value.fillna(value = df['tax_value'].mean())
-#replaces nulls with yearbuilt mode
-    df['year_built'] = df.year_built.fillna(value = 1960)
+#replaces nulls with tax_rate mean
+    df['tax_rate'] = df.tax_rate.fillna(value = df['tax_rate'].mean())
+#replaces nulls with age mean
+    df['age'] = df.age.fillna(value = df['age'].mean())
 #converts floats to int 
-    convert_dict_int = {'bathrooms': int, 'bedrooms': int, 'garage':int,'tax_value':int,
-                        'square_feet':int, 'lot_size':int, 'year_built': object}
+    convert_dict_int = {'bathrooms': int, 'bedrooms': int, 'tax_value':int, 'square_feet':int, 'age':int, 'tax_rate':int}
     df = df.astype(convert_dict_int)
 #removes outliers with k values and column features
-    df = remove_outliers(df, 1.5, ['bathrooms', 'bedrooms', 'garage', 'lot_size', 'tax_value', 'square_feet'])
+    df = remove_outliers(df, 1.5, ['bathrooms', 'bedrooms', 'tax_value', 'tax_rate', 'square_feet', 'age'])
 #gets graphs
     get_hist(df)
     get_box(df)   
-
+#split data
+    train, validate, test = train_validate_test_split(df)
     return df
+    
+############################### Split Data ##################################
+
+def train_validate_test_split(df):
+    '''
+    This function takes in a dataframe, the name of the target variable
+    (for stratification purposes), and an integer for a setting a seed
+    and splits the data into train, validate and test. 
+    Test is 20% of the original dataset, validate is .30*.80= 24% of the 
+    original dataset, and train is .70*.80= 56% of the original dataset. 
+    The function returns, in this order, train, validate and test dataframes. 
+    '''
+    
+    train_validate, test = train_test_split(df, test_size=0.2, random_state=123, stratify=df['county_code'])
+    train, validate = train_test_split(train_validate, test_size=0.3, random_state=123, stratify=train_validate['county_code'])
+    return train, validate, test
 
 ##########Final wrangle function################
 def wrangle_zillow():

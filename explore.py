@@ -2,33 +2,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import classification_report
 from scipy import stats
 
-def train_validate_test_split(df, target, seed=123):
-    '''
-    This function takes in a dataframe, the name of the target variable
-    (for stratification purposes), and an integer for a setting a seed
-    and splits the data into train, validate and test. 
-    Test is 20% of the original dataset, validate is .30*.80= 24% of the 
-    original dataset, and train is .70*.80= 56% of the original dataset. 
-    The function returns, in this order, train, validate and test dataframes. 
-    '''
-    train_validate, test = train_test_split(df, test_size=0.2, 
-                                            random_state=seed, 
-                                            stratify=df[target])
-    train, validate = train_test_split(train_validate, test_size=0.3, 
-                                       random_state=seed,
-                                       stratify=train_validate[target])
-    return train, validate, test
-
-
 def explore_univariate(train, cat_vars, quant_vars):
     for var in cat_vars:
         explore_univariate_categorical(train, var)
-        print('_________________________________________________________________')
     for col in quant_vars:
         p, descriptive_stats = explore_univariate_quant(train, col)
         plt.show(p)
@@ -41,8 +21,6 @@ def explore_bivariate(train, target, cat_vars, quant_vars):
         explore_bivariate_quant(train, target, quant)
 
 def explore_multivariate(train, target, cat_vars, quant_vars):
-    '''
-    '''
     plot_swarm_grid_with_color(train, target, cat_vars, quant_vars)
     plt.show()
     violin = plot_violin_grid_with_color(train, target, cat_vars, quant_vars)
@@ -242,3 +220,44 @@ def get_metrics_bin(clf, X, y):
     The True Negative Rate is {tnr:.3}, and the False Negative Rate is {fnr:.3}
     ''')
     return class_report     
+
+def exp_bivariate_categorical(target, cat_vars, train):
+    """
+    Takes in a target and plots it against categorial variables. Outputs boxplots and barplots and gives the mean of the target
+    by each categorical variable.
+    """
+    for var in cat_vars:
+        print_var_tar(var, target)
+
+        sns.boxplot(x=var, y=target, data=train)
+        plt.show()
+
+        print()
+
+        sns.barplot(x=var, y=target, data=train)
+        plt.show()
+        
+        print("-------------------------------")
+        print(f"Mean {target} by {var}:  ")
+        print(train.groupby(var)[target].mean())
+        print()
+
+def exp_bivariate_continuous(target, cont_vars, train):
+    """
+    Takes in a target and plots it against continuous variables. Outputs a relplot and calculates the corrleation value between
+    the target and each continuous variable.
+    """
+    for var in cont_vars:
+        print_var_tar(var, target)
+        
+        sns.relplot(x=var, y=target, data=train)
+        plt.show()
+        corr, p = stats.pearsonr(train[var], train[target])
+        
+        print("-------------------------------")
+        print(f"Correlation between {var} and {target}:  {corr}")
+        print(f"P value:  {p}")
+        print()
+
+def print_var_tar(var, target):
+        print(f"{var} vs {target}")
