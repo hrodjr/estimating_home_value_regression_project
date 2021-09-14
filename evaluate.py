@@ -36,6 +36,15 @@ def regression_errors(df, y, yhat):
     RMSE2 = mean_squared_error(y, yhat, squared = False)
     return (MSE2, SSE2, ESS, TSS, RMSE2)
 
+#returns regression errors
+def regression_errors(df, y, yhat):
+    MSE2 = mean_squared_error(y, yhat)
+    SSE2 = MSE2 * len(df)
+    ESS = sum((yhat - y.mean())**2)
+    TSS = ESS + SSE2
+    RMSE2 = mean_squared_error(y, yhat, squared = False)
+    return (MSE2, SSE2, ESS, TSS, RMSE2)
+
 #computes the SSE, MSE, and RMSE for the baseline model
 def baseline_mean_errors(df, y, yhat_baseline):
     MSE2_baseline = mean_squared_error(y, yhat_baseline)
@@ -51,3 +60,32 @@ def better_than_baseline(regression_errors = True, baseline_mean_errors = True):
         print('The model is better then the baseline.')
     else:
         print('The model is not better then the baseline.')
+
+def rfe(x,y,k):
+    rfe = RFE(estimator=LinearRegression(), n_features_to_select=k)
+    rfe.fit(X_train_scaled, y)
+    return x.columns[rfe.get_support()]
+
+def select_kbest(x,y,k):
+    kbest = SelectKBest(f_regression, k=k)
+    kbest.fit(X_train_scaled, y)
+    features = kbest.get_support()
+    return x.columns[kbest.get_support()]
+
+def scale_it(X_train, X_validate, X_test):
+    scaler = StandardScaler()
+# Note that we only call .fit with the training data,
+# but we use .transform to apply the scaling to all the data splits.
+    scaler.fit(X_train)
+
+    X_train_scaled = scaler.transform(X_train)
+    X_validate_scaled = scaler.transform(X_validate)
+    X_test_scaled = scaler.transform(X_test)
+
+    plt.figure(figsize=(13, 6))
+    plt.subplot(121)
+    plt.hist(X_train, bins=15, ec='black')
+    plt.title('Original')
+    plt.subplot(122)
+    plt.hist(X_train_scaled, bins=15, ec='black')
+    plt.title('Scaled')
