@@ -249,7 +249,7 @@ def exp_bivariate_continuous(target, cont_vars, train):
     """
     for var in cont_vars:
         print_var_tar(var, target)
-        
+
         sns.relplot(x=var, y=target, data=train)
         plt.show()
         corr, p = stats.pearsonr(train[var], train[target])
@@ -259,5 +259,18 @@ def exp_bivariate_continuous(target, cont_vars, train):
         print(f"P value:  {p}")
         print()
 
+def exp_multivariate(cont_vars, cat_vars, target, train):
+    for cont_var in cont_vars:
+        print_cont_tar(cont_var, target)
+        
+        for cat_var in cat_vars:
+            sns.relplot(x=cont_var, y=target, hue=cat_var, data=train)
+            plt.title(f"By {cat_var}")
+            plt.show()
+            print()
+
 def print_var_tar(var, target):
         print(f"{var} vs {target}")
+
+def print_cont_tar(cont_var, target):
+        print(f"{cont_var} vs {target}")
