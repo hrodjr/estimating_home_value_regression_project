@@ -1,13 +1,20 @@
 import pandas as pd
 import numpy as np
 import seaborn as sns
-from scipy import stats
+
 import matplotlib.pyplot as plt
-from seaborn.regression import residplot
-from sklearn.linear_model import LinearRegression
+
+from scipy import stats
+from scipy.stats import pearsonr, spearmanr
+from sklearn.linear_model import LinearRegression, LassoLars, TweedieRegressor
 from sklearn.metrics import mean_squared_error, r2_score, explained_variance_score
-from sklearn.feature_selection import f_regression 
+from sklearn.feature_selection import SelectKBest, f_regression, RFE
+from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler, QuantileTransformer
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.model_selection import train_test_split
+
 from math import sqrt
+
 
 #gets the baseline
 def get_baseline(df, x, y):
@@ -61,16 +68,22 @@ def better_than_baseline(regression_errors = True, baseline_mean_errors = True):
     else:
         print('The model is not better then the baseline.')
 
-def rfe(x,y,k):
+def rfe(X_train,y_train,k):
+    scaler = StandardScaler()
+    scaler.fit(X_train)
+    X_train_scaled = scaler.transform(X_train)
     rfe = RFE(estimator=LinearRegression(), n_features_to_select=k)
-    rfe.fit(X_train_scaled, y)
-    return x.columns[rfe.get_support()]
+    rfe.fit(X_train_scaled, y_train)
+    return X_train.columns[rfe.get_support()]
 
-def select_kbest(x,y,k):
+def select_kbest(X_train,y_train,k):
+    scaler = StandardScaler()
+    scaler.fit(X_train)
+    X_train_scaled = scaler.transform(X_train)
     kbest = SelectKBest(f_regression, k=k)
-    kbest.fit(X_train_scaled, y)
+    kbest.fit(X_train_scaled, y_train)
     features = kbest.get_support()
-    return x.columns[kbest.get_support()]
+    return X_train.columns[kbest.get_support()]
 
 def scale_it(X_train, X_validate, X_test):
     scaler = StandardScaler()

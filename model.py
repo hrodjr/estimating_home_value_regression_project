@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
+import seaborn as sns
 from sklearn.linear_model import LinearRegression, LassoLars, TweedieRegressor
 from sklearn.metrics import mean_squared_error, r2_score, explained_variance_score
 from sklearn.preprocessing import PolynomialFeatures
+import matplotlib.pyplot as plt
 
 def model_baseline(y_train, y_validate, target):
  #Convert y_train and y_validate to be dataframes to append the new columns with predicted values.    
@@ -141,92 +143,17 @@ def polynomialregression(y_train, X_train, y_validate, X_validate, X_test):
     print("RMSE for Polynomial Model, degrees=2\nTraining/In-Sample: ", rmse_train, 
       "\nValidation/Out-of-Sample: ", rmse_validate)
 
-def plot_actuals_predicted (y_train, y_validate):
-    y_train = pd.DataFrame(y_train)
-    y_validate = pd.DataFrame(y_validate)
-    tax_value_pred_mean = y_train['tax_value'].mean()
-    y_validate['tax_value_pred_mean'] = tax_value_pred_mean
-    
-    
-    lm = LinearRegression(normalize=True)
-    lm.fit(X_train, y_train['tax_value'])
-    y_validate['tax_value_pred_lm'] = lm.predict(X_validate)
-    
-    glm = TweedieRegressor(power=1, alpha=0)
-    glm.fit(X_train, y_train.tax_value)
-    y_validate['tax_value_pred_glm'] = glm.predict(X_validate)
-    
-    
+def model_test(X_test, y_test):
+    X_test = pd.DataFrame(X_test)
+    y_test = pd.DataFrame(y_test)
     pf = PolynomialFeatures(degree=2)
-    X_train_degree2 = pf.fit_transform(X_train)
-    X_validate_degree2 = pf.transform(X_validate)
+    X_test_degree2 = pf.fit_transform(X_test)
     X_test_degree2 = pf.transform(X_test)
-    lm2 = LinearRegression(normalize=True)
-    lm2.fit(X_train_degree2, y_train.tax_value)
-    y_validate['tax_value_pred_lm2'] = lm2.predict(X_validate_degree2)
-    
-    
-    # y_validate.head()
-    plt.figure(figsize=(16,8))
-    plt.plot(y_validate.tax_value, y_validate.tax_value_pred_mean, alpha=.5, color="gray", label='_nolegend_')
-    plt.annotate("Baseline: Predict Using Mean", (16, 9.5))
-    plt.plot(y_validate.tax_value, y_validate.tax_value, alpha=.5, color="blue", label='_nolegend_')
-    plt.annotate("The Ideal Line: Predicted = Actual", (.5, 3.5), rotation=15.5)
-
-    plt.scatter(y_validate.tax_value, y_validate.tax_value_pred_lm, 
-            alpha=.5, color="red", s=100, label="Model: LinearRegression")
-    plt.scatter(y_validate.tax_value, y_validate.tax_value_pred_glm, 
-            alpha=.5, color="yellow", s=100, label="Model: TweedieRegressor")
-    plt.scatter(y_validate.tax_value, y_validate.tax_value_pred_lm2, 
-            alpha=.5, color="green", s=100, label="Model 2nd degree Polynomial")
-    plt.legend()
-    plt.xlabel("Actual Tax Value")
-    plt.ylabel("Predicted Tax Value")
-    plt.title("Where are predictions more extreme? More modest?")
-# plt.annotate("The polynomial model appears to overreact to noise", (2.0, -10))
-# plt.annotate("The OLS model (LinearRegression)\n appears to be most consistent", (15.5, 3))
-    plt.show()
-
-def residual_plots(y_train, y_validate):
-    y_train = pd.DataFrame(y_train)
-    y_validate = pd.DataFrame(y_validate)
-    tax_value_pred_mean = y_train['tax_value'].mean()
-    y_validate['tax_value_pred_mean'] = tax_value_pred_mean
-    
-    
-    lm = LinearRegression(normalize=True)
-    lm.fit(X_train, y_train['tax_value'])
-    y_validate['tax_value_pred_lm'] = lm.predict(X_validate)
-    
-    glm = TweedieRegressor(power=1, alpha=0)
-    glm.fit(X_train, y_train.tax_value)
-    y_validate['tax_value_pred_glm'] = glm.predict(X_validate)
-    
-    
-    pf = PolynomialFeatures(degree=2)
-    X_train_degree2 = pf.fit_transform(X_train)
-    X_validate_degree2 = pf.transform(X_validate)
-    X_test_degree2 = pf.transform(X_test)
-    lm2 = LinearRegression(normalize=True)
-    lm2.fit(X_train_degree2, y_train.tax_value)
-    y_validate['tax_value_pred_lm2'] = lm2.predict(X_validate_degree2)
-    
-# y_validate.head()
-    plt.figure(figsize=(16,8))
-    plt.axhline(label="No Error")
-    plt.scatter(y_validate.tax_value, y_validate.tax_value_pred_lm-y_validate.tax_value, 
-            alpha=.5, color="red", s=100, label="Model: LinearRegression")
-    plt.scatter(y_validate.tax_value, y_validate.tax_value_pred_glm-y_validate.tax_value, 
-            alpha=.5, color="yellow", s=100, label="Model: TweedieRegressor")
-    plt.scatter(y_validate.tax_value, y_validate.tax_value_pred_lm2-y_validate.tax_value, 
-            alpha=.5, color="green", s=100, label="Model 2nd degree Polynomial")
-    plt.legend()
-    plt.xlabel("Actual Tax Value")
-    plt.ylabel("Residual/Error: Predicted Tax Value - Actual Tax Value")
-    plt.title("Do the size of errors change as the actual value changes?")
-    plt.annotate("The polynomial model appears to overreact to noise", (2.0, -10))
-    plt.annotate("The OLS model (LinearRegression)\n appears to be most consistent", (15.5, 3))
-    plt.show()
+    lm2 = LinearRegression(normalize=True) 
+    lm2.fit(X_test_degree2, y_test.tax_value)
+    y_test['tax_value_pred_lm2'] = lm2.predict(X_test_degree2)
+    rmse_test = mean_squared_error(y_test.tax_value, y_test.tax_value_pred_lm2)**(1/2)
+    print("RMSE for Polynomial Model, degrees=2\nTest: ", rmse_test)
 
 def plot_test_residuals():
     plt.figure(figsize=(16,8))
