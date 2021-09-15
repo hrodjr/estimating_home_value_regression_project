@@ -1,9 +1,10 @@
 # Estimating Home Values
 
-1. Using Miro to plan my project follow the<a href="https://miro.com/app/board/o9J_lxwpzC0=/">link</a>.
-Create a regression model, using the zillow dataset, to predict home values.
-Goal:
-Predict the values of single unit properties that the tax district assesses using the property data from those with a transaction during the "hot months" (in terms of real estate demand) of May-August, 2017.
+1. I used Miro to plan out my project. You can find it <a href="https://miro.com/app/board/o9J_lxwpzC0=/">here</a>.
+2. You can find a copy of the slide presentation <a href="https://www.canva.com/design/DAEqDI-L6kc/P5eDAfxDdn1rNT6DVaamDg/view?utm_content=DAEqDI-L6kc&utm_campaign=designshare&utm_medium=link&utm_source=sharebutton">here</a>.
+
+2. Goal:
+- Predict the values of single unit properties that the tax district assesses using the property data from those with a transaction during the "hot months" (in terms of real estate demand) of May-August, 2017.
 ## Project Details
 - Libraries
     - pandas
@@ -78,6 +79,7 @@ Hypothesis testing concluded by accepting the alternate hypothesis of each teste
     - Null: Tax value and square footage are NOT lineraly correlated.
     - Alternate: Tax value and square footage are lineraly correlated.
 ## Key findings and takeaways
+1. Initial takeaways:
 - Average home is 3 bedroom, 2 baths, built in 1963, and with a square footage of 1934.
 - Value of the average home is 535,000 dollars
 - Home owners pay an average of 6,508 dollars in property tax
@@ -89,7 +91,7 @@ Hypothesis testing concluded by accepting the alternate hypothesis of each teste
 - Average tax rate just above 1.2 percent
 - Average square feet is just above 1500sqft
 - The average age of homes in this dataset is 60
-In univariate exploration I got a glimse into several possible drivers that led me to the aforementioned hypothesis:
+2. In univariate exploration I got a glimse into several possible drivers that led me to the aforementioned hypothesis:
 - Homes in Los Angeles county make up 61% of the homes querried
 - Homes in Ventura county make up 29.24% of the homes querried
 - Homes in Orange county make up 9.63% of the homes querried
@@ -99,16 +101,16 @@ In univariate exploration I got a glimse into several possible drivers that led 
 - Average square footage is 1,753 sqft
 - Average home age is 58 years
 - Average tax rate is 1.25%
-Bivariate exploration takeaways:
+3. Bivariate exploration takeaways:
 - Homes in Orange county (6059) have the highest tax value average at 468,487 dollars
 - Followed by homes in Ventura county (6111) at 449,845 dollars and Los Angeles county (6037) at 386,158 dollars
 - Homes with 4 bathrooms have a higher tax value average of 685,958 dollars
 - Homes with 5 bedrooms have a higher tax value average of 529,151 dollars
-Multivariate exploration takeaways:
+4. Multivariate exploration takeaways:
 - Age of the home does not really play into the tax value of the home
 - The majority of homes are between 40 and 75 years old
 - Seems to be a linear corrrelation between tax value and square footage
-Modeling:
+5. Modeling:
 - Both the rfe and kbest both return 'square_feet' as the most significant feature, followed by number bedrooms and bathrooms.
 - Baseline model returns 252,577
 - The model is better then the baseline.
